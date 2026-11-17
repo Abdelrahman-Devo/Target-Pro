@@ -43,7 +43,28 @@
       <section class="page" id="salaryPage">
         <div class="page-title"><div><p class="eyebrow">التفاصيل المالية</p><h1>حساب المرتب</h1></div></div>
         <div class="salary-total"><small>صافي المرتب المتوقع</small><strong id="salaryPageNet">0 ج.م</strong><span>تقدير قابل للتحديث حسب سجلات الدورة</span></div>
-        <div class="settings-card"><h3>تعديلات هذه الدورة</h3><div class="adjust-grid"><label>إضافات / مكافآت (جنيه)<input id="manualAdditions" type="number" min="0" step="0.01" value="0"></label><label>خصومات إضافية (جنيه)<input id="manualDeductions" type="number" min="0" step="0.01" value="0"></label></div><button class="secondary-btn full" id="saveAdjustments">حفظ التعديلات</button></div><div class="breakdown-card" id="salaryBreakdown"></div>
+        <div class="breakdown-card" id="salaryBreakdown"></div>
+        <div class="settings-card incentive-panel">
+          <div class="section-heading"><div><h2>حافز التارجت الشهري</h2><p class="muted">طبقًا لشرائح الحوافز المرفقة</p></div><span class="status-pill" id="incentiveBadge">غير مستحق</span></div>
+          <div class="incentive-result"><strong id="incentiveAmount">0 جنيه</strong><small id="incentiveRange">نسبة الإنجاز: 0%</small></div>
+          <div class="breakdown-card" id="incentiveBreakdown"></div>
+          <details class="slabs-details"><summary>عرض جميع شرائح الحوافز</summary><div id="incentiveSlabsTable"></div></details>
+          <label>حالة جودة العمل
+            <select id="qualityStatus">
+              <option value="eligible">مستحق بالكامل – دون خصم جودة</option>
+              <option value="partial">خصم جزء من الحافز</option>
+              <option value="cancelled">إلغاء الحافز – أخطاء جسيمة</option>
+            </select>
+          </label>
+          <label id="incentiveDeductionWrap">قيمة الخصم من الحافز (جنيه)
+            <input type="number" id="incentiveDeduction" min="0" step="1" value="0">
+          </label>
+          <label>الخصم الإداري (جنيه)
+            <input type="number" id="adminDeduction" min="0" step="1" value="0">
+          </label>
+          <button class="primary-btn full" id="saveQualityBtn" type="button">حفظ تقييم الجودة والخصومات</button>
+          <p class="hint">يُحسب الحافز من نسبة الإنتاج الشهري إلى التارجت الشهري المرجعي (التارجت اليومي × أيام العمل). حالة الجودة والخصومات تخص الدورة الحالية وتُحفظ في الأرشيف.</p>
+        </div>
         <p class="hint">الحساب تقديري وفق إعداداتك وسجلات الحضور والغياب والإضافات. راجع قواعد جهة العمل قبل اعتماد الرقم النهائي.</p>
       </section>
 
@@ -61,7 +82,7 @@
       </section>
 
       <section class="page" id="archivePage">
-        <div class="page-title"><div><p class="eyebrow">سجل إنجازاتك</p><h1>أرشيف الدورات</h1></div></div>
+        <div class="page-title"><div><p class="eyebrow">سجل إنجازاتك</p><h1>أرشيف الدورات</h1></div><button class="primary-btn compact" id="archiveNewCycleBtn">＋ دورة جديدة</button></div>
         <div id="archiveList" class="records-list"></div>
       </section>
 
