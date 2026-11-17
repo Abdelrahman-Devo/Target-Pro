@@ -55,7 +55,7 @@ function render(){
  $("#achievementText").textContent=`${fmt(dashboardAchievement)}%`;$("#achievementBar").style.width=`${Math.min(100,dashboardAchievement)}%`;
  $("#totalSurplus").textContent=fmt(s.surplus);$("#totalOT").textContent=fmt(s.ot);$("#attendanceDays").textContent=fmt(s.attendance);$("#salaryNet").textContent=fmt(pay.net);
  $("#salaryPageNet").textContent=`${fmt(pay.net)} ج.م`;
- $("#manualAdditions").value=c.manualAdditions||0;$("#manualDeductions").value=c.manualDeductions||0;
+
  $("#salaryBreakdown").innerHTML=breakdown([
  ["المرتب الأساسي",pay.base],["قيمة اليوم",pay.day],["خصم الغياب", -pay.absentDeduction],["خصم أيام الجمعة", -pay.fridayDeduction],["مكافأة العارضة غير المستخدمة",pay.leaveBonus],["مقابل الساعات الإضافية",pay.otPay],["حافز التارجت الشهري",pay.incentive],["إضافات يدوية",pay.extra],["خصومات إضافية",-pay.deductions],["الخصم الإداري",-pay.adminDeduction],["صافي المرتب المتوقع",pay.net,true]
  ]);
@@ -98,18 +98,28 @@ $("#cycleForm").addEventListener("submit",e=>{e.preventDefault();const start=e.c
 $("#archiveList").addEventListener("click",e=>{const b=e.target.closest("[data-detail]");if(!b)return;const c=data.archive.find(x=>x.id===b.dataset.detail);if(!c)return;const s=cycleStats(c,c.settingsSnapshot||data.settings),p=salary(c,c.settingsSnapshot||data.settings);$("#detailTitle").textContent=`الدورة ${c.startDate} – ${c.endDate}`;$("#detailContent").innerHTML=`<div class="breakdown-card">${breakdown([["الإنتاج",s.total],["التارجت",s.target],["الإنجاز %",s.achievement],["الساعات الإضافية",s.ot],["الحضور",s.attendance],["الغياب",s.absence],["العارضة",s.leave],["المرتب المتوقع",p.net]])}</div><h3>السجلات اليومية</h3>${c.entries.map(e=>{const x=calcEntry(e,c.settingsSnapshot||data.settings);return `<div class="break-row"><span>${esc(e.date)} · ${statusNames[e.status]}</span><b>${fmt(x.total)} / ${fmt(x.target)}</b></div>`}).join("")||"لا توجد سجلات"}`;$("#detailModal").showModal()});
 function populateSettings(){const f=$("#settingsForm");Object.entries(data.settings).forEach(([k,v])=>{const x=f.elements[k];if(x){if(x.type==="checkbox")x.checked=!!v;else x.value=v}})}
 $("#settingsForm").addEventListener("submit",e=>{e.preventDefault();const f=e.currentTarget,next={...data.settings};Object.keys(next).forEach(k=>{const x=f.elements[k];if(x)next[k]=x.type==="checkbox"?x.checked:Number(x.value)});if(next.salaryDivisor<=0||next.workDays<=0){notify("تحقق من قيم أيام العمل وقاسم المرتب");return}data.settings=next;data.current.settingsSnapshot={...next};save();render();notify("تم حفظ الإعدادات")});
-$("#saveAdjustments").addEventListener("click",()=>{data.current.manualAdditions=Math.max(0,Number($("#manualAdditions").value)||0);data.current.manualDeductions=Math.max(0,Number($("#manualDeductions").value)||0);save();render();notify("تم تحديث حساب المرتب")});
+
 $("#themeBtn").addEventListener("click",()=>{data.theme=data.theme==="dark"?"light":"dark";applyTheme();save()});
 function applyTheme(){document.body.classList.toggle("dark",data.theme==="dark");$("#themeBtn").textContent=data.theme==="dark"?"☀":"◐"}
 $("#backupBtn").addEventListener("click",()=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});download(blob,`target-pro-backup-${today()}.json`)});
 $("#restoreBtn").addEventListener("click",()=>$("#restoreFile").click());
-$("#restoreFile").addEventListener("change",async e=>{const file=e.target.files[0];if(!file)return;try{const d=JSON.parse(await file.text());if(!d.settings||!d.current||!Array.isArray(d.archive))throw Error();if(!confirm("سيتم استبدال البيانات الحالية بالنسخة المختارة. هل تريد المتابعة؟"))return;data=d;save();$("#qualityStatus").addEventListener("change",()=>{$("#incentiveDeductionWrap").style.display=$("#qualityStatus").value==="partial"?"block":"none"});
-$("#saveQualityBtn").addEventListener("click",()=>{data.current.qualityStatus=$("#qualityStatus").value;data.current.incentiveDeduction=Number($("#incentiveDeduction").value)||0;data.current.adminDeduction=Number($("#adminDeduction").value)||0;save();render();notify("تم حفظ تقييم الجودة والحافز")});
-populateSettings();applyTheme();render();notify("تم استيراد النسخة الاحتياطية بنجاح")}catch(err){notify("ملف النسخة الاحتياطية غير صالح")}e.target.value=""});
+$("#restoreFile").addEventListener("change",async e=>{
+ const file=e.target.files[0]; if(!file)return;
+ try{
+  const imported=JSON.parse(await file.text());
+  if(!imported.settings||!imported.current||!Array.isArray(imported.archive))throw Error("invalid backup");
+  if(!confirm("سيتم استبدال البيانات الحالية بالنسخة المختارة. هل تريد المتابعة؟"))return;
+  data=imported; save(); populateSettings(); applyTheme(); render(); notify("تم استيراد النسخة الاحتياطية بنجاح");
+ }catch(err){notify("ملف النسخة الاحتياطية غير صالح");}
+ e.target.value="";
+});
 function download(blob,name){const a=document.createElement("a"),url=URL.createObjectURL(blob);a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
-$("#wipeBtn").addEventListener("click",()=>{if(!confirm("تحذير: سيتم حذف كل الدورات والسجلات والإعدادات. هل أنت متأكد؟"))return;if(!confirm("تأكيد أخير: لا يمكن التراجع عن مسح البيانات. هل تم تصدير نسخة احتياطية؟"))return;localStorage.removeItem(KEY);data={settings:{...defaults},theme:"light",current:freshCycle(today()),archive:[]};save();$("#qualityStatus").addEventListener("change",()=>{$("#incentiveDeductionWrap").style.display=$("#qualityStatus").value==="partial"?"block":"none"});
-$("#saveQualityBtn").addEventListener("click",()=>{data.current.qualityStatus=$("#qualityStatus").value;data.current.incentiveDeduction=Number($("#incentiveDeduction").value)||0;data.current.adminDeduction=Number($("#adminDeduction").value)||0;save();render();notify("تم حفظ تقييم الجودة والحافز")});
-populateSettings();applyTheme();render();notify("تم مسح البيانات")});
+$("#wipeBtn").addEventListener("click",()=>{
+ if(!confirm("تحذير: سيتم حذف كل الدورات والسجلات والإعدادات. هل أنت متأكد؟"))return;
+ if(!confirm("تأكيد أخير: لا يمكن التراجع عن مسح البيانات. هل تم تصدير نسخة احتياطية؟"))return;
+ localStorage.removeItem(KEY); data={settings:{...defaults},theme:"light",current:freshCycle(today()),archive:[]};
+ save(); populateSettings(); applyTheme(); render(); notify("تم مسح البيانات");
+});
 $("#printBtn").addEventListener("click",()=>{navigate("reportsPage");window.print()});
 $("#exportCsvBtn").addEventListener("click",()=>{const rows=[["التاريخ","الحالة","التارجت","الإنتاج الأساسي","الساعات الإضافية","إنتاج إضافي","الإجمالي","الفرق"],...data.current.entries.map(e=>{const x=calcEntry(e);return[e.date,statusNames[e.status],x.target,x.base,x.otHours,x.extra,x.total,x.variance]})];const csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\n");download(new Blob([csv],{type:"text/csv;charset=utf-8"}),`target-pro-report-${today()}.csv`)});
 $("#qualityStatus").addEventListener("change",()=>{$("#incentiveDeductionWrap").style.display=$("#qualityStatus").value==="partial"?"block":"none"});
