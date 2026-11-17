@@ -1,12 +1,20 @@
 {
-  "name": "Target Pro",
+  "name": "Target Pro - متابعة الإنتاج والراتب",
   "short_name": "Target Pro",
-  "description": "متابعة الإنتاج والتارجت والمرتب",
+  "description": "تطبيق عربي لمتابعة الإنتاج والتارجت والساعات الإضافية والراتب",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#0b1220",
-  "theme_color": "#101a2b",
+  "background_color": "#f3f6f5",
+  "theme_color": "#102d2b",
   "lang": "ar",
   "dir": "rtl",
-  "icons": []
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
 }

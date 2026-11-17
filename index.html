@@ -2,119 +2,131 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#101a2b">
-  <meta name="description" content="Target Pro - متابعة الإنتاج والتارجت والمرتب">
-  <title>Target Pro</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#102d2b">
+  <meta name="description" content="Target Pro - متابعة الإنتاج والتارجت والراتب">
+  <title>Target Pro | متابعة الإنتاج</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">T</span><div><strong>Target <b>Pro</b></strong><small>متابعة إنتاجك بذكاء</small></div></div>
-      <div class="top-actions">
-        <button class="icon-btn" id="themeToggle" aria-label="تغيير المظهر">◐</button>
-        <input type="month" id="monthPicker" aria-label="اختيار الشهر">
-      </div>
+      <div class="brand"><div class="brand-mark">T</div><div><strong>Target Pro</strong><small>إنتاجك.. إنجازك</small></div></div>
+      <button class="icon-btn" id="themeBtn" aria-label="تغيير الوضع">◐</button>
     </header>
 
     <main>
       <section class="page active" id="dashboardPage">
-        <div class="welcome"><div><p class="eyebrow" id="monthTitle">ملخص الشهر</p><h1>أهلاً بيك 👋</h1><p class="muted">تابع إنجازك وخلّي أرقامك واضحة.</p></div><span class="live-dot">● مباشر</span></div>
+        <div class="welcome-row"><div><p class="eyebrow" id="cycleLabel">الدورة الحالية</p><h1>لوحة الأداء</h1><p class="muted" id="cycleDates">—</p></div><span class="status-pill">● نشطة</span></div>
         <div class="hero-card">
-          <div class="hero-top"><span>نسبة تحقيق التارجت</span><span id="achievementLabel">0%</span></div>
-          <div class="hero-number"><strong id="doneTotal">0</strong><small>إجمالي الملفات المنجزة من تارجت الشهر <span id="targetTotal">0</span></small></div>
-          <div class="progress"><span id="progressFill"></span></div>
-          <div class="hero-bottom"><span>المتبقي <b id="remainingTotal">0</b> ملف</span><span>المتوسط <b id="averageDaily">0</b> ملف/يوم</span></div>
+          <div class="hero-top"><span>نسبة تحقيق التارجت</span><span id="achievementText">0%</span></div>
+          <div class="progress"><i id="achievementBar"></i></div>
+          <div class="hero-stats"><div><small>الإنتاج الفعلي</small><b id="totalProduction">0</b></div><div><small>التارجت المطلوب</small><b id="totalTarget">0</b></div><div><small>المتبقي</small><b id="remainingTarget">0</b></div></div>
         </div>
-        <div class="stats-grid">
-          <article class="stat-card"><span class="stat-icon green">↗</span><small>زيادة / عجز اليوم</small><strong id="todayDelta">—</strong><em>مقارنة بتارجت 405</em></article>
-          <article class="stat-card"><span class="stat-icon blue">▦</span><small>أيام مسجلة</small><strong id="workDaysCount">0</strong><em>يوم إنتاج</em></article>
-          <article class="stat-card"><span class="stat-icon purple">★</span><small>أفضل إنتاج</small><strong id="bestDay">—</strong><em>ملف في يوم واحد</em></article>
-          <article class="stat-card"><span class="stat-icon orange">☼</span><small>عدد الجمعات</small><strong id="fridayCount">0</strong><em>إجازة مدفوعة</em></article>
+        <div class="stat-grid">
+          <article class="stat-card"><span class="stat-icon green">↗</span><small>إجمالي الزيادة</small><strong id="totalSurplus">0</strong><em>ملف</em></article>
+          <article class="stat-card"><span class="stat-icon orange">◷</span><small>الساعات الإضافية</small><strong id="totalOT">0</strong><em>ساعة</em></article>
+          <article class="stat-card"><span class="stat-icon blue">▦</span><small>أيام الحضور</small><strong id="attendanceDays">0</strong><em>يوم</em></article>
+          <article class="stat-card"><span class="stat-icon purple">ج</span><small>الراتب المتوقع</small><strong id="salaryNet">0</strong><em>جنيه</em></article>
         </div>
-        <section class="panel">
-          <div class="section-heading"><div><h2>تسجيل إنتاج اليوم</h2><p>اكتب عدد الملفات اللي خلصتها</p></div><span class="tag">405 ملف مستهدف</span></div>
-          <div class="inline-form"><input type="date" id="todayDate"><input type="number" min="0" step="1" id="todayProduction" placeholder="عدد الملفات"><button class="primary-btn" id="saveTodayBtn">حفظ الإنتاج</button></div>
-          <div class="form-grid overtime-fields"><label>الساعات الإضافية اليوم<input type="number" min="0" step="1" id="todayOvertime" value="0"></label><div class="overtime-hint">كل ساعة إضافية = 60 ملف تُضاف إلى إنجازك، وليس إلى التارجت</div></div>
-          <div class="daily-target-line">إجمالي إنجازك المتوقع بالساعات: <b id="todayTargetPreview">405 ملف</b></div>
-          <p class="form-hint" id="todayStatus">يمكنك تعديل إنتاج أي يوم من سجل الإنتاج.</p>
-        </section>
-        <section class="panel">
-          <div class="section-heading"><div><h2>آخر التسجيلات</h2><p>أحدث أيام الإنتاج المسجلة</p></div><button class="text-btn" data-go="productionPage">عرض الكل</button></div>
-          <div id="recentList" class="record-list"></div>
-        </section>
+        <div class="section-heading"><div><h2>ملخص الإنتاج</h2><p class="muted">أداء الدورة الحالية</p></div><button class="text-btn" data-page="reportsPage">التقارير ←</button></div>
+        <div class="chart-card"><div class="chart-head"><strong>الإنتاج اليومي</strong><span class="legend"><i></i> الإنتاج</span></div><div id="productionChart" class="bar-chart"><p class="muted">سجّل إنتاجك لعرض الرسم البياني</p></div></div>
+        <div class="quick-actions"><button class="primary-btn" data-open="entryModal">＋ تسجيل إنتاج اليوم</button><button class="secondary-btn" id="newCycleBtn">↻ بداية دورة جديدة</button></div>
       </section>
 
-      <section class="page" id="productionPage">
-        <div class="page-heading"><p class="eyebrow">إدارة يومك</p><h1>سجل الإنتاج</h1><p class="muted">أضف أو عدّل أو احذف إنتاج أي يوم.</p></div>
-        <section class="panel">
-          <h2 id="entryFormTitle">إضافة إنتاج</h2>
-          <div class="form-grid"><label>التاريخ<input type="date" id="entryDate"></label><label>عدد الملفات<input type="number" min="0" step="1" id="entryValue" placeholder="مثال: 440"></label><label>الساعات الإضافية<input type="number" min="0" step="1" id="entryOvertime" value="0"></label></div>
-          <p class="form-hint">كل ساعة إضافية ترفع تارجت هذا اليوم بمقدار 60 ملفًا. يمكنك إضافة أكثر من ساعة.</p>
-          <div class="button-row"><button class="primary-btn" id="saveEntryBtn">حفظ اليوم</button><button class="ghost-btn" id="cancelEditBtn" hidden>إلغاء التعديل</button></div>
-        </section>
-        <section class="panel"><div class="section-heading"><div><h2>كل التسجيلات</h2><p>حسب الشهر المختار بالأعلى</p></div><span class="tag" id="recordsCount">0 تسجيل</span></div><div id="allRecords" class="record-list"></div></section>
+      <section class="page" id="entriesPage">
+        <div class="page-title"><div><p class="eyebrow">سجل العمل</p><h1>الإنتاج اليومي</h1></div><button class="primary-btn compact" data-open="entryModal">＋ إضافة</button></div>
+        <div id="entriesList" class="records-list"></div>
       </section>
 
       <section class="page" id="salaryPage">
-        <div class="page-heading"><p class="eyebrow">تقدير المستحقات</p><h1>حساب المرتب</h1><p class="muted">الأرقام تقديرية طبقاً للإعدادات التي تدخلها.</p></div>
-        <div class="salary-hero"><small>إجمالي المرتب المتوقع</small><strong id="salaryExpected">5,000 ج</strong><span>قبل أي خصومات إضافية غير مسجلة</span></div>
-        <section class="panel breakdown">
-          <div><span>المرتب الأساسي</span><b id="salaryBase">5,000 ج</b></div>
-          <div><span>مكافأة العارضة غير المستخدمة</span><b class="positive" id="ardaBonus">0 ج</b></div>
-          <div><span>خصومات مسجلة</span><b class="negative" id="salaryDeductions">0 ج</b></div>
-          <div class="total-line"><span>الصافي التقديري</span><b id="salaryNet">5,000 ج</b></div>
-        </section>
-        <section class="panel">
-          <div class="section-heading"><div><h2>العارضة</h2><p>سجّل عدد الأيام غير المستخدمة المستحقة للمكافأة</p></div></div>
-          <label>عدد أيام العارضة غير المستخدمة<input type="number" id="salaryArdaCount" min="0" step="1"></label>
-          <p class="form-hint">المكافأة الافتراضية = 3 أيام من المرتب الأساسي لكل يوم عارضة غير مستخدم.</p>
-          <label>خصومات إضافية بالجنيه<input type="number" id="extraDeductions" min="0" step="0.01" placeholder="0"></label>
-          <button class="primary-btn full" id="saveSalaryBtn">حفظ بيانات المرتب</button>
-        </section>
-        <p class="warning-note">تنبيه: راجع قواعد شركتك الفعلية. التطبيق أداة متابعة وتقدير، ولا يفترض وجود مكافآت أو خصومات غير التي تسجلها بنفسك.</p>
+        <div class="page-title"><div><p class="eyebrow">التفاصيل المالية</p><h1>حساب المرتب</h1></div></div>
+        <div class="salary-total"><small>صافي المرتب المتوقع</small><strong id="salaryPageNet">0 ج.م</strong><span>تقدير قابل للتحديث حسب سجلات الدورة</span></div>
+        <div class="settings-card"><h3>تعديلات هذه الدورة</h3><div class="adjust-grid"><label>إضافات / مكافآت (جنيه)<input id="manualAdditions" type="number" min="0" step="0.01" value="0"></label><label>خصومات إضافية (جنيه)<input id="manualDeductions" type="number" min="0" step="0.01" value="0"></label></div><button class="secondary-btn full" id="saveAdjustments">حفظ التعديلات</button></div><div class="breakdown-card" id="salaryBreakdown"></div>
+        <p class="hint">الحساب تقديري وفق إعداداتك وسجلات الحضور والغياب والإضافات. راجع قواعد جهة العمل قبل اعتماد الرقم النهائي.</p>
       </section>
 
       <section class="page" id="reportsPage">
-        <div class="page-heading"><p class="eyebrow">راجع تقدمك</p><h1>التقارير</h1><p class="muted">ملخص شهري قابل للطباعة.</p></div>
-        <section class="panel" id="printArea">
-          <div class="section-heading"><div><h2>تقرير <span id="reportMonth"></span></h2><p>ملخص أداء الشهر</p></div><span class="tag">Target Pro</span></div>
-          <div class="report-grid"><div><small>الإنتاج الفعلي</small><b id="reportDone">0</b></div><div><small>التارجت الشهري</small><b id="reportTarget">0</b></div><div><small>نسبة الإنجاز</small><b id="reportPercent">0%</b></div><div><small>متوسط اليوم</small><b id="reportAverage">0</b></div><div><small>أيام الإنتاج</small><b id="reportDays">0</b></div><div><small>أيام الجمعة</small><b id="reportFridays">0</b></div><div><small>إجمالي الساعات الإضافية</small><b id="reportOvertimeHours">0</b></div><div><small>ملفات الساعات الإضافية</small><b id="reportOvertimeFiles">0</b></div></div>
-          <div class="report-foot"><span>أفضل يوم: <b id="reportBest">—</b></span><span>المرتب المتوقع: <b id="reportSalary">5,000 ج</b></span></div>
-        </section>
-        <button class="primary-btn full" id="printBtn">طباعة التقرير / حفظ PDF</button>
-        <button class="ghost-btn full" id="exportBtn">تصدير نسخة احتياطية JSON</button>
-        <label class="import-label">استيراد نسخة احتياطية<input type="file" id="importFile" accept="application/json"></label>
+        <div class="page-title"><div><p class="eyebrow">تحليل الأداء</p><h1>التقارير</h1></div><button class="secondary-btn compact" id="printBtn">طباعة / PDF</button></div>
+        <div class="stat-grid report-stats">
+          <article class="stat-card"><small>متوسط الإنتاج</small><strong id="avgProduction">0</strong><em>ملف / يوم</em></article>
+          <article class="stat-card"><small>إجمالي العجز</small><strong id="totalDeficit">0</strong><em>ملف</em></article>
+          <article class="stat-card"><small>أفضل يوم</small><strong id="bestDay">—</strong><em id="bestDayValue">0 ملف</em></article>
+          <article class="stat-card"><small>إجمالي ساعات إضافية</small><strong id="reportOT">0</strong><em>ساعة</em></article>
+        </div>
+        <div class="chart-card"><div class="chart-head"><strong>الإنتاج مقابل التارجت</strong></div><div id="reportChart" class="bar-chart"></div></div>
+        <div class="section-heading"><h2>ملخص الدورة</h2></div><div id="reportSummary" class="breakdown-card"></div>
+        <button class="secondary-btn full" id="exportCsvBtn">تصدير بيانات الدورة CSV</button>
+      </section>
+
+      <section class="page" id="archivePage">
+        <div class="page-title"><div><p class="eyebrow">سجل إنجازاتك</p><h1>أرشيف الدورات</h1></div></div>
+        <div id="archiveList" class="records-list"></div>
       </section>
 
       <section class="page" id="settingsPage">
-        <div class="page-heading"><p class="eyebrow">تحكم كامل</p><h1>الإعدادات</h1><p class="muted">اضبط الحسابات لتناسب نظام شغلك.</p></div>
-        <section class="panel">
-          <h2>بيانات العمل</h2>
-          <div class="form-grid"><label>المرتب الأساسي (جنيه)<input type="number" id="setSalary" min="0" step="0.01"></label><label>التارجت اليومي (ملف)<input type="number" id="setTarget" min="0" step="1"></label><label>أيام العمل الأساسية بالشهر<input type="number" id="setDays" min="1" step="1"></label><label>قيمة يوم العارضة بالمضاعف<input type="number" id="setArdaMultiplier" min="0" step="0.5"></label></div>
-          <h3>حساب يوم الجمعة</h3>
-          <label class="choice"><input type="radio" name="fridayMode" value="include"> <span><b>الجمعة بتارجت كامل</b><small>إجازة مدفوعة ويضاف 405 ملفات عن كل جمعة.</small></span></label>
-          <label class="choice"><input type="radio" name="fridayMode" value="exclude"> <span><b>الجمعة بدون تارجت</b><small>إجازة مدفوعة ولا يضاف لها تارجت.</small></span></label>
-          <h3>طريقة خصم العارضة من التارجت</h3>
-          <label class="choice"><input type="radio" name="ardaTargetMode" value="subtract"> <span><b>خصم يوم تارجت</b><small>كل يوم عارضة غير مستخدم يقلل التارجت بمقدار التارجت اليومي.</small></span></label>
-          <label class="choice"><input type="radio" name="ardaTargetMode" value="none"> <span><b>بدون خصم تارجت</b><small>لا يتم تعديل التارجت بسبب العارضة.</small></span></label>
-          <button class="primary-btn full" id="saveSettingsBtn">حفظ الإعدادات</button>
-        </section>
-        <section class="panel"><h2>إدارة البيانات</h2><p class="form-hint">بياناتك محفوظة محلياً على هذا المتصفح والجهاز.</p><button class="danger-btn full" id="clearDataBtn">مسح جميع البيانات</button></section>
-        <p class="warning-note">الافتراضات الحالية: مرتب 5000 جنيه، 26 يوم عمل، 405 ملف يومياً، ومكافأة العارضة = 3 أيام من قيمة اليوم. يمكنك تعديلها.</p>
+        <div class="page-title"><div><p class="eyebrow">تخصيص التطبيق</p><h1>الإعدادات</h1></div></div>
+        <form id="settingsForm" class="settings-card">
+          <h3>إعدادات العمل والراتب</h3>
+          <label>المرتب الأساسي (جنيه)<input type="number" name="baseSalary" min="0" step="0.01"></label>
+          <label>عدد أيام العمل بالشهر<input type="number" name="workDays" min="1" max="31"></label>
+          <label>التارجت اليومي الأساسي (ملف)<input type="number" name="dailyTarget" min="0"></label>
+          <label>قيمة اليوم = المرتب ÷ <input type="number" name="salaryDivisor" min="1"></label>
+          <h3>الساعات الإضافية</h3>
+          <label>إنتاج الساعة الإضافية (ملف)<input type="number" name="filesPerOT" min="0" step="0.5"></label>
+          <label>مقابل الساعة الإضافية (جنيه)<input type="number" name="otPayPerHour" min="0" step="0.01"></label>
+          <h3>العارضة والإجازات</h3>
+          <label>عدد أيام العارضة المستحقة في الدورة<input type="number" name="leaveEntitlement" min="0" step="1"></label>
+          <label>مكافأة كل يوم عارضة غير مستخدم (أيام من قيمة اليوم)<input type="number" name="unusedLeaveMultiplier" min="0" step="0.5"></label>
+          <label class="switch-line"><span>احتساب الجمعة كيوم عمل مستحق</span><input type="checkbox" name="fridayPaid"></label>
+          <label class="switch-line"><span>احتساب الجمعة ضمن التارجت</span><input type="checkbox" name="fridayTarget"></label>
+          <button class="primary-btn full" type="submit">حفظ الإعدادات</button>
+        </form>
+        <div class="settings-card">
+          <h3>البيانات والنسخ الاحتياطي</h3>
+          <p class="muted">احتفظ بنسخة احتياطية دورية من بياناتك على جهازك.</p>
+          <div class="button-row"><button class="secondary-btn" id="backupBtn">تصدير نسخة احتياطية</button><button class="secondary-btn" id="restoreBtn">استيراد نسخة</button><input hidden type="file" id="restoreFile" accept="application/json"></div>
+          <button class="danger-btn full" id="wipeBtn">مسح جميع البيانات</button>
+        </div>
+        <div class="settings-card about"><strong>Target Pro</strong><span>الإصدار 1.0.0 · يعمل محليًا على جهازك</span></div>
       </section>
     </main>
+
+    <nav class="bottom-nav">
+      <button class="nav-item selected" data-page="dashboardPage"><span>⌂</span><small>الرئيسية</small></button>
+      <button class="nav-item" data-page="entriesPage"><span>▤</span><small>الإنتاج</small></button>
+      <button class="nav-item" data-page="salaryPage"><span>ج</span><small>المرتب</small></button>
+      <button class="nav-item" data-page="archivePage"><span>▣</span><small>الأرشيف</small></button>
+      <button class="nav-item" data-page="settingsPage"><span>⚙</span><small>الإعدادات</small></button>
+    </nav>
   </div>
 
-  <nav class="bottom-nav">
-    <button class="nav-item active" data-page="dashboardPage"><span>⌂</span>الرئيسية</button>
-    <button class="nav-item" data-page="productionPage"><span>▤</span>الإنتاج</button>
-    <button class="nav-item" data-page="salaryPage"><span>ج</span>المرتب</button>
-    <button class="nav-item" data-page="reportsPage"><span>▥</span>التقارير</button>
-    <button class="nav-item" data-page="settingsPage"><span>⚙</span>الإعدادات</button>
-  </nav>
+  <dialog id="entryModal" class="modal">
+    <form id="entryForm" method="dialog">
+      <div class="modal-head"><div><p class="eyebrow">سجل يومك</p><h2 id="entryModalTitle">إضافة إنتاج يومي</h2></div><button type="button" class="close-btn" data-close>×</button></div>
+      <input type="hidden" name="entryId">
+      <label>التاريخ<input type="date" name="date" required></label>
+      <label>حالة اليوم<select name="status"><option value="present">حضور</option><option value="absent">غياب</option><option value="leave">عارضة مستخدمة</option><option value="holiday">إجازة</option><option value="friday">جمعة</option></select></label>
+      <label>الإنتاج الأساسي (ملف)<input type="number" name="baseProduction" min="0" value="0" required></label>
+      <label>الساعات الإضافية <input type="number" name="otHours" min="0" step="0.25" value="0"></label>
+      <label>ملاحظات (اختياري)<textarea name="notes" rows="2"></textarea></label>
+      <div class="calculation-preview" id="entryPreview">التارجت الأساسي: 405 ملف · إنتاج إضافي: 0 ملف</div>
+      <button class="primary-btn full" type="submit">حفظ السجل</button>
+    </form>
+  </dialog>
+
+  <dialog id="cycleModal" class="modal">
+    <form id="cycleForm" method="dialog">
+      <div class="modal-head"><div><p class="eyebrow">إغلاق الدورة الحالية</p><h2>بداية دورة جديدة</h2></div><button type="button" class="close-btn" data-close>×</button></div>
+      <div class="cycle-summary" id="cycleSummary"></div>
+      <label>تاريخ بداية الدورة الجديدة<input type="date" name="startDate" required></label>
+      <p class="hint">لن يتم إغلاق الدورة أو تصفير بياناتها إلا بعد اختيار التاريخ والضغط على زر التأكيد.</p>
+      <button class="primary-btn full" type="submit">حفظ الدورة وبدء دورة جديدة</button>
+    </form>
+  </dialog>
+
+  <dialog id="detailModal" class="modal"><div class="modal-head"><h2 id="detailTitle">تفاصيل الدورة</h2><button class="close-btn" data-close>×</button></div><div id="detailContent"></div><button class="secondary-btn full" data-close>إغلاق</button></dialog>
   <div class="toast" id="toast" role="status"></div>
   <script src="app.js"></script>
 </body>

@@ -1,193 +1,86 @@
 (() => {
-  "use strict";
-  const DEFAULTS = { salary: 5000, target: 405, workDays: 26, ardaMultiplier: 3, fridayMode: "include", ardaTargetMode: "subtract", ardaUnused: 0, extraDeductions: 0 };
-  const $ = id => document.getElementById(id);
-  const load = (key, fallback) => { try { const value = JSON.parse(localStorage.getItem(key)); return value ?? fallback; } catch { return fallback; } };
-  let settings = { ...DEFAULTS, ...load("targetPro.settings", {}) };
-  let records = load("targetPro.records", {});
-  let overtime = load("targetPro.overtime", {});
-  const OVERTIME_FILES_PER_HOUR = 60;
-  let month = new Date().toISOString().slice(0, 7);
-  let editingDate = null;
-  const save = () => { localStorage.setItem("targetPro.settings", JSON.stringify(settings)); localStorage.setItem("targetPro.records", JSON.stringify(records)); localStorage.setItem("targetPro.overtime", JSON.stringify(overtime)); };
-  const number = value => Number.isFinite(Number(value)) ? Number(value) : 0;
-  const fmt = value => Math.round(number(value) * 100) / 100;
-  const nf = value => fmt(value).toLocaleString("en-US", { maximumFractionDigits: 2 });
-  const money = value => `${nf(value)} ج`;
-  const monthEntries = () => Object.entries(records).filter(([date]) => date.startsWith(month)).sort((a,b) => b[0].localeCompare(a[0]));
-  const countFridays = () => {
-    const [year, mon] = month.split("-").map(Number);
-    let count = 0;
-    for (let day = 1; day <= new Date(year, mon, 0).getDate(); day++) if (new Date(year, mon - 1, day).getDay() === 5) count++;
-    return count;
-  };
-  const calc = () => {
-    const entries = monthEntries();
-    const overtimeHours = entries.reduce((sum, [date]) => sum + number(overtime[date]), 0);
-    const overtimeFiles = overtimeHours * OVERTIME_FILES_PER_HOUR;
-    // Overtime adds to completed production, never to the required target.
-    const values = entries.map(([date, value]) => number(value) + number(overtime[date]) * OVERTIME_FILES_PER_HOUR);
-    const done = values.reduce((sum, value) => sum + value, 0);
-    const fridays = countFridays();
-    const fridayDays = settings.fridayMode === "include" ? fridays : 0;
-    const ardaDeduction = settings.ardaTargetMode === "subtract" ? number(settings.ardaUnused) * number(settings.target) : 0;
-    const target = Math.max(0, (number(settings.workDays) + fridayDays) * number(settings.target) - ardaDeduction + overtimeFiles);
-    const percent = target ? done / target * 100 : 0;
-    const best = values.length ? Math.max(...values) : 0;
-    const average = values.length ? done / values.length : 0;
-    const today = new Date().toISOString().slice(0,10);
-    const todayBaseValue = records[today];
-    const todayOvertimeFiles = number(overtime[today]) * OVERTIME_FILES_PER_HOUR;
-    const todayValue = todayBaseValue === undefined ? undefined : number(todayBaseValue) + todayOvertimeFiles;
-    const todayTarget = number(settings.target);
-    const dayValue = number(settings.salary) / 30;
-    const bonus = number(settings.ardaUnused) * number(settings.ardaMultiplier) * dayValue;
-    const gross = number(settings.salary) + bonus;
-    const net = gross - number(settings.extraDeductions);
-    return { done, target, remaining: Math.max(0,target-done), percent, best, average, fridays, todayValue, todayTarget, overtimeHours, overtimeFiles, bonus, gross, net, dayValue, days: values.length };
-  };
-  function toast(message) {
-    const el = $("toast"); el.textContent = message; el.classList.add("show");
-    clearTimeout(toast.timer); toast.timer = setTimeout(() => el.classList.remove("show"), 2200);
-  }
-  function safeDate(date) { return new Date(`${date}T12:00:00`).toLocaleDateString("ar-EG", { day:"numeric", month:"short", year:"numeric" }); }
-  function renderList(targetId, entries, limit) {
-    const el = $(targetId), list = limit ? entries.slice(0, limit) : entries;
-    if (!list.length) { el.innerHTML = '<div class="empty">لا توجد تسجيلات لهذا الشهر حتى الآن.</div>'; return; }
-    el.innerHTML = list.map(([date, value]) => {
-      const hours = number(overtime[date]);
-      const dailyTarget = number(settings.target);
-      const overtimeFiles = hours * OVERTIME_FILES_PER_HOUR;
-      const dailyTotal = number(value) + overtimeFiles;
-      const diff = dailyTotal - dailyTarget;
-      const status = diff >= 0 ? `زيادة ${nf(diff)}` : `عجز ${nf(Math.abs(diff))}`;
-      return `<div class="record"><div><div class="record-date">${safeDate(date)}</div><div class="record-sub">${status} عن التارجت الثابت ${nf(dailyTarget)} · ${nf(hours)} ساعة (+${nf(overtimeFiles)} ملف)</div></div><div><div class="record-value">${nf(dailyTotal)} ملف</div>${limit ? "" : `<div class="record-actions"><button class="mini-btn" data-edit="${date}">تعديل</button><button class="mini-btn" data-delete="${date}">حذف</button></div>`}</div></div>`;
-    }).join("");
-  }
-  function render() {
-    const c = calc(), entries = monthEntries();
-    $("monthTitle").textContent = `ملخص ${month}`;
-    $("doneTotal").textContent = nf(c.done); $("targetTotal").textContent = nf(c.target);
-    $("remainingTotal").textContent = nf(c.remaining); $("achievementLabel").textContent = `${nf(c.percent)}%`;
-    $("progressFill").style.width = `${Math.min(100,c.percent)}%`;
-    $("averageDaily").textContent = nf(c.average); $("workDaysCount").textContent = c.days;
-    $("bestDay").textContent = c.days ? nf(c.best) : "—"; $("fridayCount").textContent = c.fridays;
-    $("todayDelta").textContent = c.todayValue === undefined ? "—" : `${c.todayValue - c.todayTarget >= 0 ? "+" : ""}${nf(c.todayValue-c.todayTarget)}`;
-    $("todayDelta").className = c.todayValue === undefined ? "" : (c.todayValue >= c.todayTarget ? "positive" : "negative");
-    $("salaryExpected").textContent = money(c.net); $("salaryBase").textContent = money(settings.salary);
-    $("ardaBonus").textContent = money(c.bonus); $("salaryDeductions").textContent = money(settings.extraDeductions);
-    $("salaryNet").textContent = money(c.net);
-    $("salaryArdaCount").value = settings.ardaUnused; $("extraDeductions").value = settings.extraDeductions;
-    $("reportMonth").textContent = month; $("reportDone").textContent = nf(c.done);
-    $("reportTarget").textContent = nf(c.target); $("reportPercent").textContent = `${nf(c.percent)}%`;
-    $("reportAverage").textContent = nf(c.average); $("reportDays").textContent = c.days;
-    $("reportFridays").textContent = c.fridays; $("reportBest").textContent = c.days ? nf(c.best) + " ملف" : "—";
-    $("reportSalary").textContent = money(c.net);
-    $("reportOvertimeHours").textContent = nf(c.overtimeHours); $("reportOvertimeFiles").textContent = nf(c.overtimeFiles); $("recordsCount").textContent = `${entries.length} تسجيل`;
-    renderList("recentList", entries, 4); renderList("allRecords", entries);
-    const today = new Date().toISOString().slice(0,10);
-    $("todayDate").value = $("todayDate").value || today; $("entryDate").value = editingDate || today;
-    $("todayProduction").value = records[$("todayDate").value] ?? "";
-    $("todayOvertime").value = overtime[$("todayDate").value] ?? 0;
-    $("todayTargetPreview").textContent = `${nf(number(records[$("todayDate").value]) + number(overtime[$("todayDate").value]) * OVERTIME_FILES_PER_HOUR)} ملف إجمالي الإنجاز`;
-  }
-  function showPage(pageId) {
-    document.querySelectorAll(".page").forEach(page => page.classList.toggle("active", page.id === pageId));
-    document.querySelectorAll(".nav-item").forEach(button => button.classList.toggle("active", button.dataset.page === pageId));
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-  function edit(date) {
-    editingDate = date; $("entryDate").value = date; $("entryValue").value = records[date]; $("entryOvertime").value = overtime[date] ?? 0;
-    $("entryFormTitle").textContent = "تعديل إنتاج"; $("saveEntryBtn").textContent = "حفظ التعديل";
-    $("cancelEditBtn").hidden = false; showPage("productionPage");
-  }
-  function cancelEdit() {
-    editingDate = null; $("entryFormTitle").textContent = "إضافة إنتاج";
-    $("saveEntryBtn").textContent = "حفظ اليوم"; $("cancelEditBtn").hidden = true;
-    $("entryDate").value = new Date().toISOString().slice(0,10); $("entryValue").value = ""; $("entryOvertime").value = 0;
-  }
-  function saveRecord(date, value, hours) {
-    if (!date || !Number.isInteger(value) || value < 0) { toast("أدخل تاريخاً وعدداً صحيحاً من الملفات."); return false; }
-    if (!Number.isInteger(hours) || hours < 0) { toast("أدخل عدد ساعات إضافية صحيحًا."); return false; }
-    records[date] = value; if (hours > 0) overtime[date] = hours; else delete overtime[date]; save(); render(); return true;
-  }
-  $("saveTodayBtn").addEventListener("click", () => {
-    const date = $("todayDate").value, raw = $("todayProduction").value, hours = Number($("todayOvertime").value || 0);
-    if (raw === "" || !saveRecord(date, Number(raw), hours)) return;
-    toast("تم حفظ إنتاج اليوم بنجاح.");
-  });
-  $("saveEntryBtn").addEventListener("click", () => {
-    const date = $("entryDate").value, raw = $("entryValue").value, hours = Number($("entryOvertime").value || 0);
-    if (raw === "" || !saveRecord(date, Number(raw), hours)) return;
-    cancelEdit(); render(); toast("تم حفظ التسجيل.");
-  });
-  $("cancelEditBtn").addEventListener("click", cancelEdit);
-  document.addEventListener("click", event => {
-    const editDate = event.target.dataset.edit, deleteDate = event.target.dataset.delete;
-    if (editDate) edit(editDate);
-    if (deleteDate && confirm(`هل تريد حذف إنتاج يوم ${deleteDate}؟`)) {
-      delete records[deleteDate]; delete overtime[deleteDate]; save(); render(); toast("تم حذف التسجيل.");
-    }
-    const go = event.target.dataset.go; if (go) showPage(go);
-    const nav = event.target.closest(".nav-item"); if (nav) showPage(nav.dataset.page);
-  });
-  $("todayDate").addEventListener("change", () => { const date = $("todayDate").value; $("todayProduction").value = records[date] ?? ""; $("todayOvertime").value = overtime[date] ?? 0; updateTodayPreview(); });
-  function updateTodayPreview() {
-    const date = $("todayDate").value;
-    const base = $("todayProduction").value === "" ? number(records[date]) : number($("todayProduction").value);
-    const hours = number($("todayOvertime").value);
-    $("todayTargetPreview").textContent = `${nf(base + hours * OVERTIME_FILES_PER_HOUR)} ملف إجمالي الإنجاز`;
-  }
-  $("todayProduction").addEventListener("input", updateTodayPreview);
-  $("todayOvertime").addEventListener("input", updateTodayPreview);
-  $("monthPicker").value = month;
-  $("monthPicker").addEventListener("change", event => { if (event.target.value) { month = event.target.value; render(); } });
-  $("saveSalaryBtn").addEventListener("click", () => {
-    settings.ardaUnused = Math.max(0, Math.floor(number($("salaryArdaCount").value)));
-    settings.extraDeductions = Math.max(0, number($("extraDeductions").value));
-    save(); render(); toast("تم تحديث حساب المرتب.");
-  });
-  function fillSettings() {
-    $("setSalary").value = settings.salary; $("setTarget").value = settings.target;
-    $("setDays").value = settings.workDays; $("setArdaMultiplier").value = settings.ardaMultiplier;
-    document.querySelector(`input[name="fridayMode"][value="${settings.fridayMode}"]`).checked = true;
-    document.querySelector(`input[name="ardaTargetMode"][value="${settings.ardaTargetMode}"]`).checked = true;
-  }
-  $("saveSettingsBtn").addEventListener("click", () => {
-    settings.salary = Math.max(0, number($("setSalary").value));
-    settings.target = Math.max(0, Math.floor(number($("setTarget").value)));
-    settings.workDays = Math.max(1, Math.floor(number($("setDays").value)));
-    settings.ardaMultiplier = Math.max(0, number($("setArdaMultiplier").value));
-    settings.fridayMode = document.querySelector('input[name="fridayMode"]:checked').value;
-    settings.ardaTargetMode = document.querySelector('input[name="ardaTargetMode"]:checked').value;
-    save(); render(); toast("تم حفظ الإعدادات وتحديث الحسابات.");
-  });
-  $("themeToggle").addEventListener("click", () => {
-    document.body.classList.toggle("light");
-    localStorage.setItem("targetPro.theme", document.body.classList.contains("light") ? "light" : "dark");
-  });
-  if (load("targetPro.theme", "dark") === "light") document.body.classList.add("light");
-  $("printBtn").addEventListener("click", () => window.print());
-  $("exportBtn").addEventListener("click", () => {
-    const blob = new Blob([JSON.stringify({ settings, records, overtime }, null, 2)], { type:"application/json" });
-    const url = URL.createObjectURL(blob), a = document.createElement("a");
-    a.href = url; a.download = `target-pro-backup-${month}.json`; a.click(); URL.revokeObjectURL(url);
-  });
-  $("importFile").addEventListener("change", async event => {
-    const file = event.target.files[0]; if (!file) return;
-    try {
-      const data = JSON.parse(await file.text());
-      if (!data.settings || !data.records || typeof data.records !== "object") throw new Error("invalid");
-      settings = { ...DEFAULTS, ...data.settings }; records = data.records; overtime = data.overtime || {}; save(); fillSettings(); render(); toast("تم استيراد النسخة الاحتياطية.");
-    } catch { toast("ملف النسخة الاحتياطية غير صالح."); }
-    event.target.value = "";
-  });
-  $("clearDataBtn").addEventListener("click", () => {
-    if (!confirm("سيتم حذف كل الإنتاج والإعدادات من هذا الجهاز. هل أنت متأكد؟")) return;
-    settings = { ...DEFAULTS }; records = {}; overtime = {}; save(); fillSettings(); render(); toast("تم مسح البيانات.");
-  });
-  fillSettings(); render();
-  if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
-    window.addEventListener("load", () => navigator.serviceWorker.register("./service-worker.js").catch(() => {}));
-  }
+"use strict";
+const KEY="targetProDataV1";
+const defaults={baseSalary:5000,workDays:26,dailyTarget:405,salaryDivisor:30,filesPerOT:60,otPayPerHour:0,leaveEntitlement:0,unusedLeaveMultiplier:3,fridayPaid:true,fridayTarget:false};
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const fmt=n=>Number(n||0).toLocaleString("ar-EG",{maximumFractionDigits:2});
+const dateISO=d=>{const x=new Date(d);return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`};
+const today=()=>dateISO(new Date());
+const uid=()=>`${Date.now()}-${Math.random().toString(16).slice(2,8)}`;
+let data=load();
+function freshCycle(start=today()){return{id:uid(),startDate:start,endDate:null,entries:[],closedAt:null,settingsSnapshot:{...data.settings}}}
+function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.settings&&d.current)return d}catch(e){}return{settings:{...defaults},theme:"light",current:freshCycle(today()),archive:[]}}
+function save(){localStorage.setItem(KEY,JSON.stringify(data))}
+function notify(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(notify.timer);notify.timer=setTimeout(()=>t.classList.remove("show"),2400)}
+function dayTarget(entry,settings=data.settings){if(entry.status==="absent"||entry.status==="leave"||entry.status==="holiday")return 0;if(entry.status==="friday"&&!settings.fridayTarget)return 0;return Number(settings.dailyTarget)||0}
+function calcEntry(e,settings=data.settings){const ot=Number(e.otHours)||0;const extra=ot*(Number(settings.filesPerOT)||0);const target=dayTarget(e,settings);const base=Number(e.baseProduction)||0;return{target,base,extra,total:base+extra,variance:base-target,otHours:ot}}
+function cycleStats(c,settings=c.settingsSnapshot||data.settings){
+ const es=c.entries||[];let target=0,base=0,extra=0,ot=0,attendance=0,absence=0,leave=0,holidays=0,fridays=0,surplus=0,deficit=0;
+ es.forEach(e=>{const x=calcEntry(e,settings);target+=x.target;base+=x.base;extra+=x.extra;ot+=x.otHours;if(e.status==="present")attendance++;if(e.status==="absent")absence++;if(e.status==="leave")leave++;if(e.status==="holiday")holidays++;if(e.status==="friday")fridays++;surplus+=Math.max(0,x.total-x.target);deficit+=Math.max(0,x.target-x.total)});
+ const days=es.filter(e=>e.status==="present"||e.status==="absent"||e.status==="leave").length;
+ const total=base+extra;return{target,base,extra,total,ot,attendance,absence,leave,holidays,fridays,surplus,deficit,days,achievement:target?total/target*100:0,avg:attendance?total/attendance:0};
+}
+function salary(c,settings=c.settingsSnapshot||data.settings){
+ const s=cycleStats(c,settings), day=(Number(settings.baseSalary)||0)/(Number(settings.salaryDivisor)||30);
+ const absentDeduction=s.absence*day;
+ const unused=Math.max(0,(Number(settings.leaveEntitlement)||0)-s.leave);
+ const leaveBonus=unused*day*(Number(settings.unusedLeaveMultiplier)||0);
+ const otPay=s.ot*(Number(settings.otPayPerHour)||0);
+ const extra=Number(c.manualAdditions)||0, deductions=Number(c.manualDeductions)||0;
+ const fridayDeduction=(!settings.fridayPaid)?s.fridays*day:0;
+ const net=(Number(settings.baseSalary)||0)-absentDeduction-fridayDeduction+leaveBonus+otPay+extra-deductions;
+ return{base:Number(settings.baseSalary)||0,day,absentDeduction,fridayDeduction,unused,leaveBonus,otPay,extra,deductions,net};
+}
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+const statusNames={present:"حضور",absent:"غياب",leave:"عارضة مستخدمة",holiday:"إجازة",friday:"جمعة"};
+function render(){
+ const c=data.current,s=cycleStats(c),pay=salary(c);$("#cycleDates").textContent=`من ${c.startDate} · ${c.entries.length} سجل`;
+ $("#totalProduction").textContent=fmt(s.total);$("#totalTarget").textContent=fmt(s.target);$("#remainingTarget").textContent=fmt(Math.max(0,s.target-s.total));
+ $("#achievementText").textContent=`${fmt(s.achievement)}%`;$("#achievementBar").style.width=`${Math.min(100,s.achievement)}%`;
+ $("#totalSurplus").textContent=fmt(s.surplus);$("#totalOT").textContent=fmt(s.ot);$("#attendanceDays").textContent=fmt(s.attendance);$("#salaryNet").textContent=fmt(pay.net);
+ $("#salaryPageNet").textContent=`${fmt(pay.net)} ج.م`;
+ $("#manualAdditions").value=c.manualAdditions||0;$("#manualDeductions").value=c.manualDeductions||0;
+ $("#salaryBreakdown").innerHTML=breakdown([
+ ["المرتب الأساسي",pay.base],["قيمة اليوم",pay.day],["خصم الغياب", -pay.absentDeduction],["خصم أيام الجمعة", -pay.fridayDeduction],["مكافأة العارضة غير المستخدمة",pay.leaveBonus],["مقابل الساعات الإضافية",pay.otPay],["إضافات يدوية",pay.extra],["خصومات إضافية",-pay.deductions],["صافي المرتب المتوقع",pay.net,true]
+ ]);
+ renderEntries();renderArchive();renderCharts();renderReports();
+}
+function breakdown(rows){return rows.map(([n,v,total])=>`<div class="break-row ${total?"total":""}"><span>${n}</span><b>${fmt(v)} ج.م</b></div>`).join("")}
+function renderEntries(){
+ const el=$("#entriesList"),es=[...data.current.entries].sort((a,b)=>b.date.localeCompare(a.date));
+ el.innerHTML=es.length?es.map(e=>{const x=calcEntry(e);return `<article class="record-card"><div class="record-main"><strong>${esc(e.date)} · ${statusNames[e.status]||"حضور"}</strong><small>أساسي ${fmt(x.base)} · إضافي ${fmt(x.extra)} ملف · ${fmt(x.otHours)} ساعة</small><div class="record-actions"><button class="mini-btn" data-edit="${e.id}">تعديل</button><button class="mini-btn" data-delete="${e.id}">حذف</button></div></div><div class="record-value"><b>${fmt(x.total)}</b><small>من ${fmt(x.target)} ملف</small></div></article>`}).join(""):`<div class="empty-state">لا توجد سجلات بعد<br>ابدأ بتسجيل إنتاجك اليومي.</div>`;
+}
+function renderArchive(){
+ const el=$("#archiveList");el.innerHTML=data.archive.length?[...data.archive].reverse().map(c=>{const s=cycleStats(c,c.settingsSnapshot||data.settings),p=salary(c,c.settingsSnapshot||data.settings);return `<article class="record-card"><div class="record-main"><strong>${esc(c.startDate)} ← ${esc(c.endDate||"—")}</strong><small>${fmt(s.total)} إنتاج · ${fmt(s.achievement)}% إنجاز · ${fmt(s.ot)} ساعة إضافية</small><div class="record-actions"><button class="mini-btn" data-detail="${c.id}">عرض التفاصيل</button></div></div><div class="record-value"><b>${fmt(p.net)}</b><small>جنيه متوقع</small></div></article>`}).join(""):`<div class="empty-state">الأرشيف فارغ حاليًا.<br>ستظهر الدورات هنا بعد إغلاقها.</div>`;
+}
+function bars(c,container){const es=[...c.entries].sort((a,b)=>a.date.localeCompare(b.date)).slice(-14);if(!es.length){container.innerHTML='<p class="muted">سجّل إنتاجك لعرض الرسم البياني</p>';return}const max=Math.max(1,...es.map(e=>calcEntry(e).total),...es.map(e=>calcEntry(e).target));container.innerHTML=es.map(e=>{const x=calcEntry(e);return `<div class="bar-group" title="${e.date}: ${fmt(x.total)} / ${fmt(x.target)}"><div class="bar" style="height:${Math.max(2,x.total/max*100)}%"></div><span class="bar-label">${e.date.slice(5)}</span></div>`}).join("")}
+function renderCharts(){bars(data.current,$("#productionChart"));bars(data.current,$("#reportChart"))}
+function renderReports(){const s=cycleStats(data.current),es=data.current.entries;$("#avgProduction").textContent=fmt(s.avg);$("#totalDeficit").textContent=fmt(s.deficit);$("#reportOT").textContent=fmt(s.ot);const best=es.reduce((a,b)=>!a||calcEntry(b).total>calcEntry(a).total?b:a,null);$("#bestDay").textContent=best?best.date.slice(5):"—";$("#bestDayValue").textContent=best?`${fmt(calcEntry(best).total)} ملف`:"0 ملف";$("#reportSummary").innerHTML=breakdown([["إجمالي الإنتاج الأساسي",s.base],["إنتاج الساعات الإضافية",s.extra],["إجمالي الإنتاج",s.total],["إجمالي التارجت",s.target],["نسبة الإنجاز",s.achievement],["أيام الحضور",s.attendance],["أيام الغياب",s.absence],["أيام العارضة المستخدمة",s.leave],["إجمالي الساعات الإضافية",s.ot]])}
+function navigate(id){$$(".page").forEach(p=>p.classList.toggle("active",p.id===id));$$(".nav-item").forEach(b=>b.classList.toggle("selected",b.dataset.page===id));if(id==="reportsPage")renderReports();window.scrollTo({top:0,behavior:"smooth"})}
+function openEntry(entry){const f=$("#entryForm");f.reset();f.elements.entryId.value=entry?.id||"";f.elements.date.value=entry?.date||today();f.elements.status.value=entry?.status||"present";f.elements.baseProduction.value=entry?.baseProduction??0;f.elements.otHours.value=entry?.otHours??0;f.elements.notes.value=entry?.notes||"";$("#entryModalTitle").textContent=entry?"تعديل سجل الإنتاج":"إضافة إنتاج يومي";previewEntry();$("#entryModal").showModal()}
+function previewEntry(){const f=$("#entryForm"),h=Number(f.elements.otHours.value)||0;$("#entryPreview").textContent=`التارجت الأساسي: ${fmt(data.settings.dailyTarget)} ملف · إنتاج إضافي: ${fmt(h*data.settings.filesPerOT)} ملف · التارجت لا يتغير بالساعات الإضافية`}
+function closeDialogs(){ $$("dialog[open]").forEach(d=>d.close()) }
+$$("[data-page]").forEach(b=>b.addEventListener("click",()=>navigate(b.dataset.page)));
+$$("[data-open]").forEach(b=>b.addEventListener("click",()=>openEntry()));
+$$("[data-close]").forEach(b=>b.addEventListener("click",closeDialogs));
+$("#entryForm").addEventListener("input",e=>{if(e.target.name==="otHours")previewEntry()});
+$("#entryForm").addEventListener("submit",e=>{e.preventDefault();const f=e.currentTarget,id=f.elements.entryId.value;const entry={id:id||uid(),date:f.elements.date.value,status:f.elements.status.value,baseProduction:Number(f.elements.baseProduction.value)||0,otHours:Number(f.elements.otHours.value)||0,notes:f.elements.notes.value};if(!entry.date){notify("اختر التاريخ");return}const duplicate=data.current.entries.find(x=>x.date===entry.date&&x.id!==id);if(duplicate&&!confirm("يوجد سجل لهذا التاريخ. هل تريد استبداله؟"))return;if(duplicate)data.current.entries=data.current.entries.filter(x=>x.id!==duplicate.id);if(id)data.current.entries=data.current.entries.map(x=>x.id===id?entry:x);else data.current.entries.push(entry);save();closeDialogs();render();notify("تم حفظ سجل اليوم")});
+$("#entriesList").addEventListener("click",e=>{const edit=e.target.closest("[data-edit]"),del=e.target.closest("[data-delete]");if(edit){const x=data.current.entries.find(x=>x.id===edit.dataset.edit);openEntry(x)}if(del&&confirm("هل تريد حذف سجل هذا اليوم نهائيًا؟")){data.current.entries=data.current.entries.filter(x=>x.id!==del.dataset.delete);save();render();notify("تم حذف السجل")}});
+$("#newCycleBtn").addEventListener("click",()=>{const s=cycleStats(data.current),p=salary(data.current);$("#cycleSummary").innerHTML=`الإنتاج: <strong>${fmt(s.total)}</strong> ملف<br>التارجت: <strong>${fmt(s.target)}</strong> ملف<br>الساعات الإضافية: <strong>${fmt(s.ot)}</strong><br>الحضور: <strong>${s.attendance}</strong> · الغياب: <strong>${s.absence}</strong> · العارضة: <strong>${s.leave}</strong><br>المرتب المتوقع: <strong>${fmt(p.net)} جنيه</strong>`;$("#cycleForm").elements.startDate.value="";$("#cycleModal").showModal()});
+$("#cycleForm").addEventListener("submit",e=>{e.preventDefault();const start=e.currentTarget.elements.startDate.value;if(!start){notify("يجب اختيار تاريخ بداية الدورة");return}if(!confirm("سيتم حفظ الدورة الحالية في الأرشيف وإنشاء دورة جديدة. هل تؤكد؟"))return;if(start<data.current.startDate){if(!confirm("تاريخ البداية أقدم من بداية الدورة الحالية. هل تريد المتابعة؟"))return}const old=data.current;old.endDate=new Date(new Date(start+"T00:00:00").getTime()-86400000).toISOString().slice(0,10);old.closedAt=new Date().toISOString();old.settingsSnapshot={...data.settings};data.archive.push(old);data.current=freshCycle(start);save();closeDialogs();render();navigate("dashboardPage");notify("تم حفظ الدورة وبدء دورة جديدة")});
+$("#archiveList").addEventListener("click",e=>{const b=e.target.closest("[data-detail]");if(!b)return;const c=data.archive.find(x=>x.id===b.dataset.detail);if(!c)return;const s=cycleStats(c,c.settingsSnapshot||data.settings),p=salary(c,c.settingsSnapshot||data.settings);$("#detailTitle").textContent=`الدورة ${c.startDate} – ${c.endDate}`;$("#detailContent").innerHTML=`<div class="breakdown-card">${breakdown([["الإنتاج",s.total],["التارجت",s.target],["الإنجاز %",s.achievement],["الساعات الإضافية",s.ot],["الحضور",s.attendance],["الغياب",s.absence],["العارضة",s.leave],["المرتب المتوقع",p.net]])}</div><h3>السجلات اليومية</h3>${c.entries.map(e=>{const x=calcEntry(e,c.settingsSnapshot||data.settings);return `<div class="break-row"><span>${esc(e.date)} · ${statusNames[e.status]}</span><b>${fmt(x.total)} / ${fmt(x.target)}</b></div>`}).join("")||"لا توجد سجلات"}`;$("#detailModal").showModal()});
+function populateSettings(){const f=$("#settingsForm");Object.entries(data.settings).forEach(([k,v])=>{const x=f.elements[k];if(x){if(x.type==="checkbox")x.checked=!!v;else x.value=v}})}
+$("#settingsForm").addEventListener("submit",e=>{e.preventDefault();const f=e.currentTarget,next={...data.settings};Object.keys(next).forEach(k=>{const x=f.elements[k];if(x)next[k]=x.type==="checkbox"?x.checked:Number(x.value)});if(next.salaryDivisor<=0||next.workDays<=0){notify("تحقق من قيم أيام العمل وقاسم المرتب");return}data.settings=next;save();render();notify("تم حفظ الإعدادات")});
+$("#saveAdjustments").addEventListener("click",()=>{data.current.manualAdditions=Math.max(0,Number($("#manualAdditions").value)||0);data.current.manualDeductions=Math.max(0,Number($("#manualDeductions").value)||0);save();render();notify("تم تحديث حساب المرتب")});
+$("#themeBtn").addEventListener("click",()=>{data.theme=data.theme==="dark"?"light":"dark";applyTheme();save()});
+function applyTheme(){document.body.classList.toggle("dark",data.theme==="dark");$("#themeBtn").textContent=data.theme==="dark"?"☀":"◐"}
+$("#backupBtn").addEventListener("click",()=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});download(blob,`target-pro-backup-${today()}.json`)});
+$("#restoreBtn").addEventListener("click",()=>$("#restoreFile").click());
+$("#restoreFile").addEventListener("change",async e=>{const file=e.target.files[0];if(!file)return;try{const d=JSON.parse(await file.text());if(!d.settings||!d.current||!Array.isArray(d.archive))throw Error();if(!confirm("سيتم استبدال البيانات الحالية بالنسخة المختارة. هل تريد المتابعة؟"))return;data=d;save();populateSettings();applyTheme();render();notify("تم استيراد النسخة الاحتياطية بنجاح")}catch(err){notify("ملف النسخة الاحتياطية غير صالح")}e.target.value=""});
+function download(blob,name){const a=document.createElement("a"),url=URL.createObjectURL(blob);a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+$("#wipeBtn").addEventListener("click",()=>{if(!confirm("تحذير: سيتم حذف كل الدورات والسجلات والإعدادات. هل أنت متأكد؟"))return;if(!confirm("تأكيد أخير: لا يمكن التراجع عن مسح البيانات. هل تم تصدير نسخة احتياطية؟"))return;localStorage.removeItem(KEY);data={settings:{...defaults},theme:"light",current:freshCycle(today()),archive:[]};save();populateSettings();applyTheme();render();notify("تم مسح البيانات")});
+$("#printBtn").addEventListener("click",()=>{navigate("reportsPage");window.print()});
+$("#exportCsvBtn").addEventListener("click",()=>{const rows=[["التاريخ","الحالة","التارجت","الإنتاج الأساسي","الساعات الإضافية","إنتاج إضافي","الإجمالي","الفرق"],...data.current.entries.map(e=>{const x=calcEntry(e);return[e.date,statusNames[e.status],x.target,x.base,x.otHours,x.extra,x.total,x.variance]})];const csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\n");download(new Blob([csv],{type:"text/csv;charset=utf-8"}),`target-pro-report-${today()}.csv`)});
+populateSettings();applyTheme();render();
+if("serviceWorker"in navigator&&location.protocol!=="file:")window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").catch(()=>{}));
 })();
