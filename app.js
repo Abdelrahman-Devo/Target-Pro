@@ -14,8 +14,21 @@ const dateISO=d=>{const x=new Date(d);return `${x.getFullYear()}-${String(x.getM
 const today=()=>dateISO(new Date());
 const uid=()=>`${Date.now()}-${Math.random().toString(16).slice(2,8)}`;
 let data=load();
-function freshCycle(start=today()){return{id:uid(),startDate:start,endDate:null,entries:[],closedAt:null,settingsSnapshot:{...data.settings}}}
-function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.settings&&d.current)return d}catch(e){}return{settings:{...defaults},theme:"light",current:freshCycle(today()),archive:[]}}
+function freshCycle(start=today(),settings=defaults){return{id:uid(),startDate:start,endDate:null,entries:[],closedAt:null,settingsSnapshot:{...settings}}}
+function load(){
+ try{
+  const d=JSON.parse(localStorage.getItem(KEY));
+  if(d&&d.settings&&d.current){
+   d.settings={...defaults,...d.settings};
+   d.current.entries=Array.isArray(d.current.entries)?d.current.entries:[];
+   d.current.settingsSnapshot={...d.settings,...(d.current.settingsSnapshot||{})};
+   d.archive=Array.isArray(d.archive)?d.archive:[];
+   return d;
+  }
+ }catch(e){console.warn("تعذر تحميل بيانات Target Pro:",e)}
+ const settings={...defaults};
+ return{settings,theme:"light",current:freshCycle(today(),settings),archive:[]};
+}
 function save(){localStorage.setItem(KEY,JSON.stringify(data))}
 function notify(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(notify.timer);notify.timer=setTimeout(()=>t.classList.remove("show"),2400)}
 function dayTarget(entry,settings=data.settings){if(entry.status==="absent"||entry.status==="leave"||entry.status==="holiday")return 0;if(entry.status==="friday"&&!settings.fridayTarget)return 0;return Number(settings.dailyTarget)||0}
@@ -94,7 +107,7 @@ $("#entriesList").addEventListener("click",e=>{const edit=e.target.closest("[dat
 function startNewCycleDialog(){const s=cycleStats(data.current),p=salary(data.current);$("#cycleSummary").innerHTML=`الإنتاج: <strong>${fmt(s.total)}</strong> ملف<br>التارجت الشهري المرجعي: <strong>${fmt(p.monthlyTarget)}</strong> ملف<br>نسبة الإنجاز: <strong>${fmt(p.incentivePercent)}%</strong><br>الحافز قبل الجودة: <strong>${fmt(p.grossIncentive)} جنيه</strong><br>الساعات الإضافية: <strong>${fmt(s.ot)}</strong><br>الحضور: <strong>${s.attendance}</strong> · الغياب: <strong>${s.absence}</strong> · العارضة: <strong>${s.leave}</strong><br>المرتب المتوقع: <strong>${fmt(p.net)} جنيه</strong>`;$("#cycleForm").elements.startDate.value="";$("#cycleModal").showModal()}
 $("#newCycleBtn").addEventListener("click",startNewCycleDialog);
 $("#archiveNewCycleBtn").addEventListener("click",startNewCycleDialog);
-$("#cycleForm").addEventListener("submit",e=>{e.preventDefault();const start=e.currentTarget.elements.startDate.value;if(!start){notify("يجب اختيار تاريخ بداية الدورة");return}if(!confirm("سيتم حفظ الدورة الحالية في الأرشيف وإنشاء دورة جديدة. هل تؤكد؟"))return;if(start<data.current.startDate){if(!confirm("تاريخ البداية أقدم من بداية الدورة الحالية. هل تريد المتابعة؟"))return}const old=data.current;old.endDate=new Date(new Date(start+"T00:00:00").getTime()-86400000).toISOString().slice(0,10);old.closedAt=new Date().toISOString();old.settingsSnapshot={...data.settings};data.archive.push(old);data.current=freshCycle(start);save();closeDialogs();render();navigate("dashboardPage");notify("تم حفظ الدورة وبدء دورة جديدة")});
+$("#cycleForm").addEventListener("submit",e=>{e.preventDefault();const start=e.currentTarget.elements.startDate.value;if(!start){notify("يجب اختيار تاريخ بداية الدورة");return}if(!confirm("سيتم حفظ الدورة الحالية في الأرشيف وإنشاء دورة جديدة. هل تؤكد؟"))return;if(start<data.current.startDate){if(!confirm("تاريخ البداية أقدم من بداية الدورة الحالية. هل تريد المتابعة؟"))return}const old=data.current;old.endDate=new Date(new Date(start+"T00:00:00").getTime()-86400000).toISOString().slice(0,10);old.closedAt=new Date().toISOString();old.settingsSnapshot={...data.settings};data.archive.push(old);data.current=freshCycle(start,data.settings);save();closeDialogs();render();navigate("dashboardPage");notify("تم حفظ الدورة وبدء دورة جديدة")});
 $("#archiveList").addEventListener("click",e=>{const b=e.target.closest("[data-detail]");if(!b)return;const c=data.archive.find(x=>x.id===b.dataset.detail);if(!c)return;const s=cycleStats(c,c.settingsSnapshot||data.settings),p=salary(c,c.settingsSnapshot||data.settings);$("#detailTitle").textContent=`الدورة ${c.startDate} – ${c.endDate}`;$("#detailContent").innerHTML=`<div class="breakdown-card">${breakdown([["الإنتاج",s.total],["التارجت",s.target],["الإنجاز %",s.achievement],["الساعات الإضافية",s.ot],["الحضور",s.attendance],["الغياب",s.absence],["العارضة",s.leave],["المرتب المتوقع",p.net]])}</div><h3>السجلات اليومية</h3>${c.entries.map(e=>{const x=calcEntry(e,c.settingsSnapshot||data.settings);return `<div class="break-row"><span>${esc(e.date)} · ${statusNames[e.status]}</span><b>${fmt(x.total)} / ${fmt(x.target)}</b></div>`}).join("")||"لا توجد سجلات"}`;$("#detailModal").showModal()});
 function populateSettings(){const f=$("#settingsForm");Object.entries(data.settings).forEach(([k,v])=>{const x=f.elements[k];if(x){if(x.type==="checkbox")x.checked=!!v;else x.value=v}})}
 $("#settingsForm").addEventListener("submit",e=>{e.preventDefault();const f=e.currentTarget,next={...data.settings};Object.keys(next).forEach(k=>{const x=f.elements[k];if(x)next[k]=x.type==="checkbox"?x.checked:Number(x.value)});if(next.salaryDivisor<=0||next.workDays<=0){notify("تحقق من قيم أيام العمل وقاسم المرتب");return}data.settings=next;data.current.settingsSnapshot={...next};save();render();notify("تم حفظ الإعدادات")});
@@ -117,7 +130,7 @@ function download(blob,name){const a=document.createElement("a"),url=URL.createO
 $("#wipeBtn").addEventListener("click",()=>{
  if(!confirm("تحذير: سيتم حذف كل الدورات والسجلات والإعدادات. هل أنت متأكد؟"))return;
  if(!confirm("تأكيد أخير: لا يمكن التراجع عن مسح البيانات. هل تم تصدير نسخة احتياطية؟"))return;
- localStorage.removeItem(KEY); data={settings:{...defaults},theme:"light",current:freshCycle(today()),archive:[]};
+ localStorage.removeItem(KEY); data={settings:{...defaults},theme:"light",current:freshCycle(today(),{...defaults}),archive:[]};
  save(); populateSettings(); applyTheme(); render(); notify("تم مسح البيانات");
 });
 $("#printBtn").addEventListener("click",()=>{navigate("reportsPage");window.print()});
