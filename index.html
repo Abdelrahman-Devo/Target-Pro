@@ -37,6 +37,8 @@
         <section class="panel">
           <div class="section-heading"><div><h2>تسجيل إنتاج اليوم</h2><p>اكتب عدد الملفات اللي خلصتها</p></div><span class="tag">405 ملف مستهدف</span></div>
           <div class="inline-form"><input type="date" id="todayDate"><input type="number" min="0" step="1" id="todayProduction" placeholder="عدد الملفات"><button class="primary-btn" id="saveTodayBtn">حفظ الإنتاج</button></div>
+          <div class="form-grid overtime-fields"><label>الساعات الإضافية اليوم<input type="number" min="0" step="1" id="todayOvertime" value="0"></label><div class="overtime-hint">كل ساعة إضافية = 60 ملف تضاف تلقائيًا لتارجت اليوم</div></div>
+          <div class="daily-target-line">التارجت المطلوب لهذا اليوم بعد الساعات: <b id="todayTargetPreview">405 ملف</b></div>
           <p class="form-hint" id="todayStatus">يمكنك تعديل إنتاج أي يوم من سجل الإنتاج.</p>
         </section>
         <section class="panel">
@@ -49,7 +51,8 @@
         <div class="page-heading"><p class="eyebrow">إدارة يومك</p><h1>سجل الإنتاج</h1><p class="muted">أضف أو عدّل أو احذف إنتاج أي يوم.</p></div>
         <section class="panel">
           <h2 id="entryFormTitle">إضافة إنتاج</h2>
-          <div class="form-grid"><label>التاريخ<input type="date" id="entryDate"></label><label>عدد الملفات<input type="number" min="0" step="1" id="entryValue" placeholder="مثال: 440"></label></div>
+          <div class="form-grid"><label>التاريخ<input type="date" id="entryDate"></label><label>عدد الملفات<input type="number" min="0" step="1" id="entryValue" placeholder="مثال: 440"></label><label>الساعات الإضافية<input type="number" min="0" step="1" id="entryOvertime" value="0"></label></div>
+          <p class="form-hint">كل ساعة إضافية ترفع تارجت هذا اليوم بمقدار 60 ملفًا. يمكنك إضافة أكثر من ساعة.</p>
           <div class="button-row"><button class="primary-btn" id="saveEntryBtn">حفظ اليوم</button><button class="ghost-btn" id="cancelEditBtn" hidden>إلغاء التعديل</button></div>
         </section>
         <section class="panel"><div class="section-heading"><div><h2>كل التسجيلات</h2><p>حسب الشهر المختار بالأعلى</p></div><span class="tag" id="recordsCount">0 تسجيل</span></div><div id="allRecords" class="record-list"></div></section>
@@ -78,7 +81,7 @@
         <div class="page-heading"><p class="eyebrow">راجع تقدمك</p><h1>التقارير</h1><p class="muted">ملخص شهري قابل للطباعة.</p></div>
         <section class="panel" id="printArea">
           <div class="section-heading"><div><h2>تقرير <span id="reportMonth"></span></h2><p>ملخص أداء الشهر</p></div><span class="tag">Target Pro</span></div>
-          <div class="report-grid"><div><small>الإنتاج الفعلي</small><b id="reportDone">0</b></div><div><small>التارجت الشهري</small><b id="reportTarget">0</b></div><div><small>نسبة الإنجاز</small><b id="reportPercent">0%</b></div><div><small>متوسط اليوم</small><b id="reportAverage">0</b></div><div><small>أيام الإنتاج</small><b id="reportDays">0</b></div><div><small>أيام الجمعة</small><b id="reportFridays">0</b></div></div>
+          <div class="report-grid"><div><small>الإنتاج الفعلي</small><b id="reportDone">0</b></div><div><small>التارجت الشهري</small><b id="reportTarget">0</b></div><div><small>نسبة الإنجاز</small><b id="reportPercent">0%</b></div><div><small>متوسط اليوم</small><b id="reportAverage">0</b></div><div><small>أيام الإنتاج</small><b id="reportDays">0</b></div><div><small>أيام الجمعة</small><b id="reportFridays">0</b></div><div><small>إجمالي الساعات الإضافية</small><b id="reportOvertimeHours">0</b></div><div><small>ملفات الساعات الإضافية</small><b id="reportOvertimeFiles">0</b></div></div>
           <div class="report-foot"><span>أفضل يوم: <b id="reportBest">—</b></span><span>المرتب المتوقع: <b id="reportSalary">5,000 ج</b></span></div>
         </section>
         <button class="primary-btn full" id="printBtn">طباعة التقرير / حفظ PDF</button>

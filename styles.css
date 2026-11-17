@@ -5,3 +5,8 @@ body.light{--bg:#f2f6fa;--surface:#fff;--surface2:#edf3f8;--surface3:#f7f9fc;--t
 @media(min-width:650px){.app-shell{padding-top:30px}.stats-grid{grid-template-columns:repeat(4,1fr)}.hero-number strong{font-size:45px}}
 @media(max-width:390px){.inline-form{grid-template-columns:1fr 1fr}.inline-form button{grid-column:1/-1}.brand strong{font-size:16px}.top-actions input{max-width:125px}.report-foot{flex-direction:column}}
 @media print{body{background:white;color:#111}.app-shell{padding:0}.topbar,.bottom-nav,.page:not(#reportsPage),#reportsPage>button,#reportsPage>.import-label{display:none!important}#reportsPage{display:block!important}.panel{box-shadow:none;border:1px solid #ddd;background:white;color:#111}.report-grid>div{background:#f5f5f5}.muted,.section-heading p{color:#555}}
+
+.overtime-fields { margin-top: 12px; align-items: end; }
+.overtime-hint { color: var(--muted, #9aa8bd); font-size: .84rem; align-self: center; line-height: 1.7; }
+.daily-target-line { margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: rgba(42, 183, 130, .10); color: var(--text, #eef3fb); font-size: .9rem; }
+.daily-target-line b { color: #39c995; }
