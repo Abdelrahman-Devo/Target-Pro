@@ -23,10 +23,11 @@
   };
   const calc = () => {
     const entries = monthEntries();
-    const values = entries.map(([, value]) => number(value));
-    const done = values.reduce((sum, value) => sum + value, 0);
     const overtimeHours = entries.reduce((sum, [date]) => sum + number(overtime[date]), 0);
     const overtimeFiles = overtimeHours * OVERTIME_FILES_PER_HOUR;
+    // Overtime adds to completed production, never to the required target.
+    const values = entries.map(([date, value]) => number(value) + number(overtime[date]) * OVERTIME_FILES_PER_HOUR);
+    const done = values.reduce((sum, value) => sum + value, 0);
     const fridays = countFridays();
     const fridayDays = settings.fridayMode === "include" ? fridays : 0;
     const ardaDeduction = settings.ardaTargetMode === "subtract" ? number(settings.ardaUnused) * number(settings.target) : 0;
@@ -35,8 +36,10 @@
     const best = values.length ? Math.max(...values) : 0;
     const average = values.length ? done / values.length : 0;
     const today = new Date().toISOString().slice(0,10);
-    const todayValue = records[today];
-    const todayTarget = number(settings.target) + number(overtime[today]) * OVERTIME_FILES_PER_HOUR;
+    const todayBaseValue = records[today];
+    const todayOvertimeFiles = number(overtime[today]) * OVERTIME_FILES_PER_HOUR;
+    const todayValue = todayBaseValue === undefined ? undefined : number(todayBaseValue) + todayOvertimeFiles;
+    const todayTarget = number(settings.target);
     const dayValue = number(settings.salary) / 30;
     const bonus = number(settings.ardaUnused) * number(settings.ardaMultiplier) * dayValue;
     const gross = number(settings.salary) + bonus;
@@ -53,10 +56,12 @@
     if (!list.length) { el.innerHTML = '<div class="empty">لا توجد تسجيلات لهذا الشهر حتى الآن.</div>'; return; }
     el.innerHTML = list.map(([date, value]) => {
       const hours = number(overtime[date]);
-      const dailyTarget = number(settings.target) + hours * OVERTIME_FILES_PER_HOUR;
-      const diff = number(value) - dailyTarget;
+      const dailyTarget = number(settings.target);
+      const overtimeFiles = hours * OVERTIME_FILES_PER_HOUR;
+      const dailyTotal = number(value) + overtimeFiles;
+      const diff = dailyTotal - dailyTarget;
       const status = diff >= 0 ? `زيادة ${nf(diff)}` : `عجز ${nf(Math.abs(diff))}`;
-      return `<div class="record"><div><div class="record-date">${safeDate(date)}</div><div class="record-sub">${status} عن تارجت ${nf(dailyTarget)} ملف · ${nf(hours)} ساعة إضافية</div></div><div><div class="record-value">${nf(value)} ملف</div>${limit ? "" : `<div class="record-actions"><button class="mini-btn" data-edit="${date}">تعديل</button><button class="mini-btn" data-delete="${date}">حذف</button></div>`}</div></div>`;
+      return `<div class="record"><div><div class="record-date">${safeDate(date)}</div><div class="record-sub">${status} عن التارجت الثابت ${nf(dailyTarget)} · ${nf(hours)} ساعة (+${nf(overtimeFiles)} ملف)</div></div><div><div class="record-value">${nf(dailyTotal)} ملف</div>${limit ? "" : `<div class="record-actions"><button class="mini-btn" data-edit="${date}">تعديل</button><button class="mini-btn" data-delete="${date}">حذف</button></div>`}</div></div>`;
     }).join("");
   }
   function render() {
@@ -84,7 +89,7 @@
     $("todayDate").value = $("todayDate").value || today; $("entryDate").value = editingDate || today;
     $("todayProduction").value = records[$("todayDate").value] ?? "";
     $("todayOvertime").value = overtime[$("todayDate").value] ?? 0;
-    $("todayTargetPreview").textContent = `${nf(number(settings.target) + number(overtime[$("todayDate").value]) * OVERTIME_FILES_PER_HOUR)} ملف`;
+    $("todayTargetPreview").textContent = `${nf(number(records[$("todayDate").value]) + number(overtime[$("todayDate").value]) * OVERTIME_FILES_PER_HOUR)} ملف إجمالي الإنجاز`;
   }
   function showPage(pageId) {
     document.querySelectorAll(".page").forEach(page => page.classList.toggle("active", page.id === pageId));
@@ -126,7 +131,15 @@
     const go = event.target.dataset.go; if (go) showPage(go);
     const nav = event.target.closest(".nav-item"); if (nav) showPage(nav.dataset.page);
   });
-  $("todayDate").addEventListener("change", () => { const date = $("todayDate").value; $("todayProduction").value = records[date] ?? ""; $("todayOvertime").value = overtime[date] ?? 0; $("todayTargetPreview").textContent = `${nf(number(settings.target) + number(overtime[date]) * OVERTIME_FILES_PER_HOUR)} ملف`; });
+  $("todayDate").addEventListener("change", () => { const date = $("todayDate").value; $("todayProduction").value = records[date] ?? ""; $("todayOvertime").value = overtime[date] ?? 0; updateTodayPreview(); });
+  function updateTodayPreview() {
+    const date = $("todayDate").value;
+    const base = $("todayProduction").value === "" ? number(records[date]) : number($("todayProduction").value);
+    const hours = number($("todayOvertime").value);
+    $("todayTargetPreview").textContent = `${nf(base + hours * OVERTIME_FILES_PER_HOUR)} ملف إجمالي الإنجاز`;
+  }
+  $("todayProduction").addEventListener("input", updateTodayPreview);
+  $("todayOvertime").addEventListener("input", updateTodayPreview);
   $("monthPicker").value = month;
   $("monthPicker").addEventListener("change", event => { if (event.target.value) { month = event.target.value; render(); } });
   $("saveSalaryBtn").addEventListener("click", () => {

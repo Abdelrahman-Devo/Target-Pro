@@ -24,7 +24,7 @@
         <div class="welcome"><div><p class="eyebrow" id="monthTitle">ملخص الشهر</p><h1>أهلاً بيك 👋</h1><p class="muted">تابع إنجازك وخلّي أرقامك واضحة.</p></div><span class="live-dot">● مباشر</span></div>
         <div class="hero-card">
           <div class="hero-top"><span>نسبة تحقيق التارجت</span><span id="achievementLabel">0%</span></div>
-          <div class="hero-number"><strong id="doneTotal">0</strong><small>ملف من <span id="targetTotal">0</span></small></div>
+          <div class="hero-number"><strong id="doneTotal">0</strong><small>إجمالي الملفات المنجزة من تارجت الشهر <span id="targetTotal">0</span></small></div>
           <div class="progress"><span id="progressFill"></span></div>
           <div class="hero-bottom"><span>المتبقي <b id="remainingTotal">0</b> ملف</span><span>المتوسط <b id="averageDaily">0</b> ملف/يوم</span></div>
         </div>
@@ -37,8 +37,8 @@
         <section class="panel">
           <div class="section-heading"><div><h2>تسجيل إنتاج اليوم</h2><p>اكتب عدد الملفات اللي خلصتها</p></div><span class="tag">405 ملف مستهدف</span></div>
           <div class="inline-form"><input type="date" id="todayDate"><input type="number" min="0" step="1" id="todayProduction" placeholder="عدد الملفات"><button class="primary-btn" id="saveTodayBtn">حفظ الإنتاج</button></div>
-          <div class="form-grid overtime-fields"><label>الساعات الإضافية اليوم<input type="number" min="0" step="1" id="todayOvertime" value="0"></label><div class="overtime-hint">كل ساعة إضافية = 60 ملف تضاف تلقائيًا لتارجت اليوم</div></div>
-          <div class="daily-target-line">التارجت المطلوب لهذا اليوم بعد الساعات: <b id="todayTargetPreview">405 ملف</b></div>
+          <div class="form-grid overtime-fields"><label>الساعات الإضافية اليوم<input type="number" min="0" step="1" id="todayOvertime" value="0"></label><div class="overtime-hint">كل ساعة إضافية = 60 ملف تُضاف إلى إنجازك، وليس إلى التارجت</div></div>
+          <div class="daily-target-line">إجمالي إنجازك المتوقع بالساعات: <b id="todayTargetPreview">405 ملف</b></div>
           <p class="form-hint" id="todayStatus">يمكنك تعديل إنتاج أي يوم من سجل الإنتاج.</p>
         </section>
         <section class="panel">
